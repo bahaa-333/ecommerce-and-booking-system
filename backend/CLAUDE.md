@@ -35,12 +35,13 @@ Because these business models differ substantially (e.g. inventory + orders for 
 - **Engine**: PostgreSQL.
 - **Multi-tenancy strategy**: schema-per-tenant — each tenant (business) gets its own Postgres schema, rather than a shared-schema `tenant_id` column approach. A central/public schema is expected to hold cross-tenant data (tenant registry, platform admins, global lookups); tenant schemas hold that business's operational data.
 - Implication for migrations: schema-per-tenant means migrations need to run per-tenant-schema (not just once against `public`), and provisioning a new tenant means creating a schema and running the tenant migration set against it. This isn't stock Laravel behavior — the concrete provisioning/migration mechanism is still to be decided as this is built out.
-- The local skeleton currently still defaults to SQLite (`DB_CONNECTION=sqlite` in `.env.example`) — this has not yet been switched to Postgres.
+- Local dev now points at Postgres (`DB_CONNECTION=pgsql` in `.env`/`.env.example`, database `aligned_tech`). The test suite (`phpunit.xml`) still runs against isolated in-memory SQLite regardless of the dev DB — that's intentional and doesn't need to change.
+- `roles` table (`admin`, `customer`, `staff`) is seeded via `database/seeders/RoleSeeder.php`, called from `DatabaseSeeder`. Not yet linked to `users` — that association (FK vs. pivot table) is still to be decided.
 
 ## Stack
 
 - PHP 8.2+, Laravel 12
-- DB: PostgreSQL (target), schema-per-tenant — see "Database architecture" above. Local `.env.example` still defaults to SQLite pending migration.
+- DB: PostgreSQL, schema-per-tenant — see "Database architecture" above.
 - Frontend build: Vite + Tailwind CSS 4 (`vite.config.js`, `package.json`)
 - Testing: PHPUnit via `php artisan test` (not Pest — `pestphp` is not installed)
 - Queue/cache/session drivers default to `database` in `.env.example`

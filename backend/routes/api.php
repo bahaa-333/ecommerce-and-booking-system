@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\BusinessTypeController;
 use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\TenantDiscoveryController;
 use App\Http\Controllers\Api\Tenant\BookingController;
 use App\Http\Controllers\Api\Tenant\OrderController;
 use App\Http\Controllers\Api\Tenant\PaymentController;
@@ -25,11 +26,17 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::apiResource('tenants', TenantController::class);
 });
 
+// Public tenant discovery — how a customer finds a business at all, before
+// they know its slug. Not tenant-scoped, doesn't touch a tenant's schema.
+Route::get('tenants', [TenantDiscoveryController::class, 'index']);
+
 // Tenant-scoped catalog. {tenant} is a slug, resolved (and its Postgres
 // schema switched to) by the 'tenant' middleware. Browsing is public;
 // writes require being the tenant's owner, a platform admin, or active
 // tenant staff (see EnsureTenantAccess).
 Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
+    Route::get('/', [TenantDiscoveryController::class, 'show']);
+
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/{product}', [ProductController::class, 'show']);
     Route::get('services', [ServiceController::class, 'index']);

@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\Admin\BusinessTypeController;
 use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Tenant\BookingController;
+use App\Http\Controllers\Api\Tenant\OrderController;
 use App\Http\Controllers\Api\Tenant\ProductController;
 use App\Http\Controllers\Api\Tenant\ServiceController;
 use Illuminate\Support\Facades\Route;
@@ -40,5 +42,18 @@ Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
         Route::put('services/{service}', [ServiceController::class, 'update']);
         Route::patch('services/{service}', [ServiceController::class, 'update']);
         Route::delete('services/{service}', [ServiceController::class, 'destroy']);
+    });
+
+    // Orders and bookings are never public — always someone's own purchase/
+    // appointment, or visible to whoever manages the tenant (see
+    // Tenant::isManagedBy, checked inside each controller method).
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('orders', [OrderController::class, 'index']);
+        Route::post('orders', [OrderController::class, 'store']);
+        Route::get('orders/{order}', [OrderController::class, 'show']);
+
+        Route::get('bookings', [BookingController::class, 'index']);
+        Route::post('bookings', [BookingController::class, 'store']);
+        Route::get('bookings/{booking}', [BookingController::class, 'show']);
     });
 });

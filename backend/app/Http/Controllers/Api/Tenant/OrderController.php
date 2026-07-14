@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Enums\PaymentStatus;
+use App\Enums\TransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
@@ -155,5 +156,61 @@ class OrderController extends Controller
         }
 
         return $order;
+    }
+
+    /**
+     * Transition the order's status. Only `status` is editable here — an
+     * order's contents aren't meant to change after placement.
+     *
+     * Tenant managers (see Tenant::isManagedBy) can make any valid
+     * transition (confirm, complete, cancel); the customer who placed the
+     * order may only cancel it. Cancelling restores stock_quantity for any
+     * tracked product/variant in the order, since it was decremented at
+     * placement time.
+     */
+    public function update(Request $request)
+    {
+        $order = Order::with('items')->findOrFail((int) $request->route('order'));
+
+        /** @var Tenant $tenant */
+        $tenant = $request->route('tenant');
+        $user = $request->user();
+        $isManager = $tenant->isManagedBy($user);
+
+        if ($order->user_id !== $user->id && ! $isManager) {
+            abort(403, 'This action is unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(array_column(TransactionStatus::cases(), 'value'))],
+        ]);
+
+        $newStatus = TransactionStatus::from($validated['status']);
+
+        if (! $isManager && $newStatus !== TransactionStatus::Cancelled) {
+            abort(403, 'Customers may only cancel their own order.');
+        }
+
+        if (! $order->status->canTransitionTo($newStatus)) {
+            throw ValidationException::withMessages([
+                'status' => ["Cannot move an order from \"{$order->status->value}\" to \"{$newStatus->value}\"."],
+            ]);
+        }
+
+        DB::connection('tenant')->transaction(function () use ($order, $newStatus) {
+            if ($newStatus === TransactionStatus::Cancelled) {
+                foreach ($order->items as $item) {
+                    $stockHolder = $item->product_variant_id ? $item->variant : $item->product;
+
+                    if ($stockHolder && $stockHolder->stock_quantity !== null) {
+                        $stockHolder->increment('stock_quantity', $item->quantity);
+                    }
+                }
+            }
+
+            $order->update(['status' => $newStatus]);
+        });
+
+        return $order->load(['items.product', 'payments']);
     }
 }

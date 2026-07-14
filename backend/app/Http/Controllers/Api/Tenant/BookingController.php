@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Tenant;
 
 use App\Enums\DurationUnit;
 use App\Enums\PaymentStatus;
+use App\Enums\TransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Service;
@@ -151,6 +152,48 @@ class BookingController extends Controller
         }
 
         return $booking;
+    }
+
+    /**
+     * Transition the booking's status. Only `status` is editable here.
+     *
+     * Tenant managers (see Tenant::isManagedBy) can make any valid
+     * transition (confirm, complete, cancel); the customer who made the
+     * booking may only cancel it. Unlike orders, there's no stock to
+     * restore on cancellation.
+     */
+    public function update(Request $request)
+    {
+        $booking = Booking::findOrFail((int) $request->route('booking'));
+
+        /** @var Tenant $tenant */
+        $tenant = $request->route('tenant');
+        $user = $request->user();
+        $isManager = $tenant->isManagedBy($user);
+
+        if ($booking->user_id !== $user->id && ! $isManager) {
+            abort(403, 'This action is unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(array_column(TransactionStatus::cases(), 'value'))],
+        ]);
+
+        $newStatus = TransactionStatus::from($validated['status']);
+
+        if (! $isManager && $newStatus !== TransactionStatus::Cancelled) {
+            abort(403, 'Customers may only cancel their own booking.');
+        }
+
+        if (! $booking->status->canTransitionTo($newStatus)) {
+            throw ValidationException::withMessages([
+                'status' => ["Cannot move a booking from \"{$booking->status->value}\" to \"{$newStatus->value}\"."],
+            ]);
+        }
+
+        $booking->update(['status' => $newStatus]);
+
+        return $booking->load(['service', 'timeSlot', 'staff', 'payments']);
     }
 
     private function deriveEndsAt(Carbon $startsAt, Service $service): Carbon

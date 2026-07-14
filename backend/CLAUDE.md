@@ -28,15 +28,29 @@ The platform is multi-tenant: each tenant is a business, and a tenant can operat
 - Events
 - Workshops
 
-Because these business models differ substantially (e.g. inventory + orders for retail vs. appointment slots for salon/gym vs. room/date bookings for hotel/guest house), expect the schema to have a shared core (tenants, users, roles, payments) plus per-business-model extensions rather than one flat set of tables.
+Rather than a separate set of tables per business model, the schema uses one generalized shared core per tenant: **products** (buy-now goods — retail items, menu items, retail add-ons) and **services** (bookable offerings — salon/gym treatments, hotel rooms, event/workshop sessions all fit the same shape: price, capacity, duration, advance-booking notice). See "Database architecture" below for the full table breakdown.
 
 ## Database architecture
 
 - **Engine**: PostgreSQL.
-- **Multi-tenancy strategy**: schema-per-tenant — each tenant (business) gets its own Postgres schema, rather than a shared-schema `tenant_id` column approach. A central/public schema is expected to hold cross-tenant data (tenant registry, platform admins, global lookups); tenant schemas hold that business's operational data.
-- Implication for migrations: schema-per-tenant means migrations need to run per-tenant-schema (not just once against `public`), and provisioning a new tenant means creating a schema and running the tenant migration set against it. This isn't stock Laravel behavior — the concrete provisioning/migration mechanism is still to be decided as this is built out.
+- **Multi-tenancy strategy**: schema-per-tenant — each tenant (business) gets its own Postgres schema, rather than a shared-schema `tenant_id` column approach. The central `public` schema holds cross-tenant data; tenant schemas hold that business's operational data. Because both live in the *same physical database*, tenant-schema tables can (and do) hold real Postgres FK constraints back to central tables, e.g. `orders.user_id` → `public.users.id`, via schema-qualified references (`$table->foreignId(...)->constrained('public.users')`).
+- **Provisioning mechanism**: custom-built (no `stancl/tenancy` package), not yet implemented — creating a tenant's schema and running `database/migrations/tenant/` against it via `search_path` switching is still to be built. Central migrations (`database/migrations/`) and tenant migrations (`database/migrations/tenant/`) are already isolated for free: Laravel's `migrate` command only globs the top-level `database/migrations/` directory, so it never picks up the `tenant/` subdirectory.
 - Local dev now points at Postgres (`DB_CONNECTION=pgsql` in `.env`/`.env.example`, database `aligned_tech`). The test suite (`phpunit.xml`) still runs against isolated in-memory SQLite regardless of the dev DB — that's intentional and doesn't need to change.
-- `roles` table (`admin`, `customer`, `staff`) is seeded via `database/seeders/RoleSeeder.php`, called from `DatabaseSeeder`. Not yet linked to `users` — that association (FK vs. pivot table) is still to be decided.
+- Enums are modeled as native PHP backed enums under `app/Enums/` (`PaymentMethod`, `PaymentStatus`, `TransactionStatus`, `CatalogStatus`, `ServiceAvailabilityType`, `TenantStaffRole`) and cast on the relevant Eloquent models — the DB columns themselves are plain `string`, not Postgres native enum types (easier to alter later).
+
+### Central (`public`) schema
+
+- `roles` (`admin`/`customer`/`staff`) — seeded via `RoleSeeder`. `users.role_id` (nullable FK) gives each account one global role.
+- `business_types` — lookup table (not an enum) for the 9 supported business models, seeded via `BusinessTypeSeeder`. Descriptive metadata only — every tenant schema gets the same shared-core tables regardless of business type.
+- `tenants` — the business registry (`business_type_id`, `schema_name`, `owner_user_id`, `status`).
+- `tenant_staff` — records which tenant(s) a staff account works for (`tenant_id`, `user_id`, `role` — tenant-scoped `admin`/`staff`, distinct from the global `users.role_id`). Admins and customers never get a row here; customers place orders/bookings directly via `user_id`, no membership needed.
+
+### Tenant-schema shared core (`database/migrations/tenant/`, not yet run against any real schema)
+
+- `products` (buy-now goods, `has_variants` flag) + `product_images` (Cloudinary URLs — max 4 per product, app-enforced, not a DB constraint) + `product_options`/`product_option_values` (e.g. "Size" → Small/Medium/Large — option groups, just labeled choices) + `order_items` + `orders` — line-item purchase flow. `orders.user_id` → `public.users`; `order_items.product_id` → `products` directly (no polymorphism, one buyable type per tenant). When `products.has_variants` is true, `product_variants` holds the actual purchasable combinations (own `price`/`stock_quantity`/`description`, plus `product_variant_images`), linked to the option values that make up each combination via `product_variant_option_values` (e.g. variant = {Size: Large, Color: Red}); `order_items.product_variant_id` (nullable) records which variant was bought, when applicable.
+- `services` (bookable offerings — generalizes salon/gym/hotel/event offerings into one table: `capacity`, `duration_value`+`duration_unit`, `advance_booking_value`+`advance_booking_unit` — unit is `minutes`/`hours`/`days` via the `DurationUnit` enum, so a haircut can be "60 minutes" and a hotel stay "1 days" without forcing everything into a minutes integer) + `service_images` (same Cloudinary/max-4 pattern as products) + `service_time_slots` (recurring or date-range availability windows, `availability_type` enum) + `service_time_slot_staff` (pivot: which `tenant_staff` can cover which time slot) + `bookings` — appointment flow. `bookings.service_id` is a direct FK (a booking is always for one service); `bookings.staff_id` (nullable) → `public.tenant_staff`, `bookings.service_time_slot_id` (nullable) records which availability rule was used.
+- `payments` — polymorphic `payable_type`/`payable_id` (covers either an `order` or a `booking`).
+- Capacity/staff-availability enforcement (e.g. "no more than N overlapping bookings for this service") is an application-level rule, not a DB constraint.
 
 ## Stack
 

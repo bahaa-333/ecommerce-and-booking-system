@@ -52,11 +52,12 @@ class ServiceController extends Controller
     /**
      * Display the specified resource.
      *
-     * Public (no auth).
+     * Public (no auth). Takes only Request — see ProductController::show()
+     * for why a second, scalar-typed route parameter isn't safe here.
      */
-    public function show(int $service)
+    public function show(Request $request)
     {
-        return Service::with(['images', 'timeSlots'])->findOrFail($service);
+        return Service::with(['images', 'timeSlots'])->findOrFail((int) $request->route('service'));
     }
 
     /**
@@ -64,9 +65,9 @@ class ServiceController extends Controller
      *
      * Gated by the 'tenant.access' middleware (owner/admin/staff only).
      */
-    public function update(Request $request, int $service)
+    public function update(Request $request)
     {
-        $service = Service::findOrFail($service);
+        $service = Service::findOrFail((int) $request->route('service'));
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -94,9 +95,9 @@ class ServiceController extends Controller
      *
      * Gated by the 'tenant.access' middleware (owner/admin/staff only).
      */
-    public function destroy(int $service)
+    public function destroy(Request $request)
     {
-        Service::findOrFail($service)->delete();
+        Service::findOrFail((int) $request->route('service'))->delete();
 
         return response()->noContent();
     }

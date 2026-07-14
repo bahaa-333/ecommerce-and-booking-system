@@ -50,11 +50,16 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      *
-     * Public (no auth).
+     * Public (no auth). Takes only Request, not a second typed parameter:
+     * mixing a DI parameter (Request) with a scalar route parameter (int
+     * $product) makes Laravel's controller-method parameter resolution
+     * positional instead of name-matched, and it silently mismatches which
+     * route segment goes where (confirmed the hard way — see git history).
+     * Pulling the route segment manually sidesteps that entirely.
      */
-    public function show(int $product)
+    public function show(Request $request)
     {
-        return Product::with(['images', 'options.values'])->findOrFail($product);
+        return Product::with(['images', 'options.values'])->findOrFail((int) $request->route('product'));
     }
 
     /**
@@ -62,9 +67,9 @@ class ProductController extends Controller
      *
      * Gated by the 'tenant.access' middleware (owner/admin/staff only).
      */
-    public function update(Request $request, int $product)
+    public function update(Request $request)
     {
-        $product = Product::findOrFail($product);
+        $product = Product::findOrFail((int) $request->route('product'));
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -90,9 +95,9 @@ class ProductController extends Controller
      *
      * Gated by the 'tenant.access' middleware (owner/admin/staff only).
      */
-    public function destroy(int $product)
+    public function destroy(Request $request)
     {
-        Product::findOrFail($product)->delete();
+        Product::findOrFail((int) $request->route('product'))->delete();
 
         return response()->noContent();
     }

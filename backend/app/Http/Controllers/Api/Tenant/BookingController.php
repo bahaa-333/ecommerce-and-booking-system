@@ -46,10 +46,12 @@ class BookingController extends Controller
      * Enforces advance-notice and capacity (max overlapping bookings) rules
      * from the service, and opens an unpaid Payment for the chosen method.
      *
-     * staff_id is only checked against "is this an active staff member of
-     * this tenant" -- not against per-time-slot eligibility
-     * (service_time_slot_staff), since there's no endpoint yet for staff to
-     * actually manage which slots they cover. Tracked as a follow-up.
+     * If both service_time_slot_id and staff_id are given, staff_id must be
+     * assigned to that slot (service_time_slot_staff, managed via
+     * ServiceTimeSlotController::syncStaff) — otherwise staff_id is only
+     * checked against "is this an active staff member of this tenant" at
+     * all, since a slot-less booking has no eligibility list to check
+     * against.
      */
     public function store(Request $request)
     {
@@ -76,6 +78,16 @@ class BookingController extends Controller
             if (! $timeSlot) {
                 throw ValidationException::withMessages([
                     'service_time_slot_id' => ['This time slot does not belong to the selected service.'],
+                ]);
+            }
+        }
+
+        if ($timeSlot && ! empty($validated['staff_id'])) {
+            $eligible = $timeSlot->staff()->where('tenant_staff.id', $validated['staff_id'])->exists();
+
+            if (! $eligible) {
+                throw ValidationException::withMessages([
+                    'staff_id' => ['This staff member is not assigned to the selected time slot.'],
                 ]);
             }
         }

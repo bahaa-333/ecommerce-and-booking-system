@@ -22,6 +22,31 @@ return new class extends Migration
             $table->string('status')->default('active');
             $table->timestamps();
         });
+
+        // Cloudinary URLs — max 4 per product, enforced at the application level, not here.
+        Schema::create('product_images', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->string('url');
+            $table->unsignedTinyInteger('position')->default(0);
+            $table->timestamps();
+        });
+
+        // e.g. "Size", "Color", "Days" — an option group for a product.
+        Schema::create('product_options', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->string('name');
+            $table->timestamps();
+        });
+
+        // e.g. "Small" / "Red" / "3" — the choices within one option group.
+        Schema::create('product_option_values', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_option_id')->constrained('product_options')->cascadeOnDelete();
+            $table->string('value');
+            $table->timestamps();
+        });
     }
 
     /**
@@ -29,6 +54,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('product_option_values');
+        Schema::dropIfExists('product_options');
+        Schema::dropIfExists('product_images');
         Schema::dropIfExists('products');
     }
 };

@@ -26,6 +26,16 @@ class Product extends Model
         ];
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position');
+    }
+
+    public function options(): HasMany
+    {
+        return $this->hasMany(ProductOption::class);
+    }
+
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CatalogStatus;
+use App\Enums\DurationUnit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -14,8 +15,10 @@ class Service extends Model
         'description',
         'price',
         'capacity',
-        'duration_minutes',
-        'advance_booking_minutes',
+        'duration_value',
+        'duration_unit',
+        'advance_booking_value',
+        'advance_booking_unit',
         'status',
     ];
 
@@ -24,7 +27,14 @@ class Service extends Model
         return [
             'status' => CatalogStatus::class,
             'price' => 'decimal:2',
+            'duration_unit' => DurationUnit::class,
+            'advance_booking_unit' => DurationUnit::class,
         ];
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ServiceImage::class)->orderBy('position');
     }
 
     public function timeSlots(): HasMany

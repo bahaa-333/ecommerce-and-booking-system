@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TenantStaffRole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -51,6 +52,30 @@ class Tenant extends Model
         return $this->staff()
             ->where('user_id', $user->id)
             ->where('status', 'active')
+            ->exists();
+    }
+
+    /**
+     * Stricter than isManagedBy: platform admin, this tenant's owner, or an
+     * active staff member with the tenant-scoped 'admin' role specifically
+     * (not plain 'staff'). Managing the staff roster itself -- who else can
+     * touch this tenant -- is more sensitive than day-to-day catalog/order
+     * work, so it's gated separately.
+     */
+    public function isAdministeredBy(User $user): bool
+    {
+        if ($user->role?->slug === 'admin') {
+            return true;
+        }
+
+        if ($this->owner_user_id === $user->id) {
+            return true;
+        }
+
+        return $this->staff()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where('role', TenantStaffRole::Admin->value)
             ->exists();
     }
 }

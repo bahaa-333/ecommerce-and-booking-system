@@ -31,4 +31,26 @@ class Tenant extends Model
     {
         return $this->hasMany(TenantStaff::class);
     }
+
+    /**
+     * Platform admin, this tenant's owner, or one of its active staff --
+     * the same "can manage this tenant" check used both to gate catalog
+     * writes and to decide whether a user sees every order/booking for
+     * this tenant or only their own.
+     */
+    public function isManagedBy(User $user): bool
+    {
+        if ($user->role?->slug === 'admin') {
+            return true;
+        }
+
+        if ($this->owner_user_id === $user->id) {
+            return true;
+        }
+
+        return $this->staff()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->exists();
+    }
 }

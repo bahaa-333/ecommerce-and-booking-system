@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\Tenant\OrderController;
 use App\Http\Controllers\Api\Tenant\PaymentController;
 use App\Http\Controllers\Api\Tenant\ProductController;
 use App\Http\Controllers\Api\Tenant\ServiceController;
+use App\Http\Controllers\Api\Tenant\ServiceTimeSlotController;
+use App\Http\Controllers\Api\Tenant\TenantStaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('register', [AuthController::class, 'register']);
@@ -43,7 +45,14 @@ Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
         Route::put('services/{service}', [ServiceController::class, 'update']);
         Route::patch('services/{service}', [ServiceController::class, 'update']);
         Route::delete('services/{service}', [ServiceController::class, 'destroy']);
+
+        Route::post('services/{service}/time-slots', [ServiceTimeSlotController::class, 'store']);
+        Route::patch('services/{service}/time-slots/{slot}', [ServiceTimeSlotController::class, 'update']);
+        Route::delete('services/{service}/time-slots/{slot}', [ServiceTimeSlotController::class, 'destroy']);
+        Route::put('services/{service}/time-slots/{slot}/staff', [ServiceTimeSlotController::class, 'syncStaff']);
     });
+
+    Route::get('services/{service}/time-slots', [ServiceTimeSlotController::class, 'index']);
 
     // Orders and bookings are never public — always someone's own purchase/
     // appointment, or visible to whoever manages the tenant (see
@@ -60,5 +69,10 @@ Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
         Route::patch('bookings/{booking}', [BookingController::class, 'update']);
 
         Route::patch('payments/{payment}', [PaymentController::class, 'update']);
+
+        Route::get('staff', [TenantStaffController::class, 'index']);
+        Route::post('staff', [TenantStaffController::class, 'store']);
+        Route::patch('staff/{staff}', [TenantStaffController::class, 'update']);
+        Route::delete('staff/{staff}', [TenantStaffController::class, 'destroy']);
     });
 });

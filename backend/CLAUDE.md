@@ -123,6 +123,14 @@ vendor/bin/pint        # Laravel Pint (PSR-12-based code style)
 - Models live in `app/Models/`, migrations in `database/migrations/`, factories in `database/factories/`, seeders in `database/seeders/`. Autoloading for `Database\Factories` and `Database\Seeders` is PSR-4 mapped in `composer.json`.
 - Config files under `config/` follow standard Laravel conventions (`database.php`, `auth.php`, `queue.php`, etc.) and read from `.env` — check the relevant config file when changing a driver or connection rather than hardcoding values.
 
+## Authentication
+
+- **Laravel Sanctum, SPA (cookie) mode** — the React frontend and API are treated as a first-party pair, not a third-party API consumer. Login/register set an HttpOnly session cookie via CSRF-protected endpoints; there's no bearer token to store in JS. `personal_access_tokens` table exists (Sanctum's standard migration) but isn't used by this flow — only relevant if a future mobile app/third-party client needs real API tokens.
+- `config/cors.php` (published, not framework-default) sets `supports_credentials => true` and `allowed_origins` from `FRONTEND_URLS` (comma-separated, no wildcard — required for credentialed CORS). `config/sanctum.php`'s `stateful` domains come from `SANCTUM_STATEFUL_DOMAINS`. Both default to `localhost:5173`/`127.0.0.1:5173` (Vite) in `.env`/`.env.example`.
+- `bootstrap/app.php` calls `$middleware->statefulApi()` so `auth:sanctum`-protected routes accept the session cookie from stateful domains.
+- `App\Http\Controllers\Api\AuthController`: `register` (always creates a `customer`-role account — admin/staff accounts are never self-service), `login`, `logout`, `me`. Frontend flow: `GET /sanctum/csrf-cookie` first, then `POST /api/register` or `/api/login` with the `X-XSRF-TOKEN` header (axios does this automatically with `withCredentials: true`).
+- The `admin/*` routes (`BusinessTypeController`, `TenantController`) are not yet gated by role — that's the next step (RBAC middleware/policies), tracked via `TODO` comments in those controllers.
+
 ## Git conventions
 
 - Do not add a `Co-Authored-By: Claude` (or Anthropic) line to commit messages.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Laravel 12 application, currently at the default framework skeleton (stock `User` model/migration, default `welcome` route, no custom domain code yet). Database schema and application features are being built out from here — check `database/migrations/` and `app/Models/` for the current state rather than assuming this doc stays in sync.
+This is a Laravel 12 application. The central + tenant-schema database (see "Database architecture" below), Sanctum SPA auth, and role-gated admin CRUD for tenants/business types are built; most of the API surface (tenant-scoped catalog/booking endpoints, the tenant provisioning mechanism, Customer/Staff portal routes) is not. Check `database/migrations/`, `app/Models/`, and `routes/api.php` for the current state rather than assuming this doc stays in sync.
 
 ## Product overview
 
@@ -118,7 +118,7 @@ vendor/bin/pint        # Laravel Pint (PSR-12-based code style)
 
 ## Architecture notes
 
-- Routing: `bootstrap/app.php` wires `routes/web.php` (HTTP) and `routes/console.php` (Artisan commands); there is no `routes/api.php` yet — add it via `withRouting()` in `bootstrap/app.php` if/when an API surface is introduced.
+- Routing: `bootstrap/app.php` wires `routes/web.php` (HTTP), `routes/api.php` (JSON API for the React frontend), and `routes/console.php` (Artisan commands).
 - Middleware and exception handling are configured centrally in `bootstrap/app.php` (via `withMiddleware()` / `withExceptions()`), not in separate Kernel classes — this is the Laravel 11+/12 structure, not the older Laravel 10-style `app/Http/Kernel.php`.
 - Models live in `app/Models/`, migrations in `database/migrations/`, factories in `database/factories/`, seeders in `database/seeders/`. Autoloading for `Database\Factories` and `Database\Seeders` is PSR-4 mapped in `composer.json`.
 - Config files under `config/` follow standard Laravel conventions (`database.php`, `auth.php`, `queue.php`, etc.) and read from `.env` — check the relevant config file when changing a driver or connection rather than hardcoding values.
@@ -129,7 +129,7 @@ vendor/bin/pint        # Laravel Pint (PSR-12-based code style)
 - `config/cors.php` (published, not framework-default) sets `supports_credentials => true` and `allowed_origins` from `FRONTEND_URLS` (comma-separated, no wildcard — required for credentialed CORS). `config/sanctum.php`'s `stateful` domains come from `SANCTUM_STATEFUL_DOMAINS`. Both default to `localhost:5173`/`127.0.0.1:5173` (Vite) in `.env`/`.env.example`.
 - `bootstrap/app.php` calls `$middleware->statefulApi()` so `auth:sanctum`-protected routes accept the session cookie from stateful domains.
 - `App\Http\Controllers\Api\AuthController`: `register` (always creates a `customer`-role account — admin/staff accounts are never self-service), `login`, `logout`, `me`. Frontend flow: `GET /sanctum/csrf-cookie` first, then `POST /api/register` or `/api/login` with the `X-XSRF-TOKEN` header (axios does this automatically with `withCredentials: true`).
-- The `admin/*` routes (`BusinessTypeController`, `TenantController`) are not yet gated by role — that's the next step (RBAC middleware/policies), tracked via `TODO` comments in those controllers.
+- RBAC: `App\Http\Middleware\EnsureUserHasRole` (aliased `role`) checks `$user->role->slug` against the roles passed to the middleware, e.g. `role:admin`. The `admin/*` route group (`BusinessTypeController`, `TenantController`) runs `['auth:sanctum', 'role:admin']`. This is global-role gating only — it doesn't know about `tenant_staff` membership/tenant-scoped roles, which will need a separate check once tenant-scoped routes exist.
 
 ## Git conventions
 

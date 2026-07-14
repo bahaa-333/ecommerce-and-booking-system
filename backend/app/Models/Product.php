@@ -15,6 +15,7 @@ class Product extends Model
         'price',
         'sku',
         'stock_quantity',
+        'has_variants',
         'status',
     ];
 
@@ -23,6 +24,7 @@ class Product extends Model
         return [
             'status' => CatalogStatus::class,
             'price' => 'decimal:2',
+            'has_variants' => 'boolean',
         ];
     }
 
@@ -34,6 +36,11 @@ class Product extends Model
     public function options(): HasMany
     {
         return $this->hasMany(ProductOption::class);
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
     }
 
     public function orderItems(): HasMany

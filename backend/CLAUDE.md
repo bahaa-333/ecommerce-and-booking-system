@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Laravel 12 application. The central + tenant-schema database (see "Database architecture" below), Sanctum SPA auth, role-gated admin CRUD for tenants/business types, and tenant provisioning (a new tenant's Postgres schema is created and migrated automatically on `POST /api/admin/tenants`) are built; most of the API surface (tenant-scoped catalog/booking endpoints, per-request tenant resolution, Customer/Staff portal routes) is not. Check `database/migrations/`, `app/Models/`, and `routes/api.php` for the current state rather than assuming this doc stays in sync.
+This is a Laravel 12 application. The central + tenant-schema database (see "Database architecture" below), Sanctum SPA auth, role-gated admin CRUD for tenants/business types, tenant provisioning, and a tenant-scoped product/service catalog (public browsing + owner/admin/staff-gated writes) are built; orders, bookings, and the rest of the Customer/Staff portal routes are not. Check `database/migrations/`, `app/Models/`, and `routes/api.php` for the current state rather than assuming this doc stays in sync.
 
 ## Product overview
 
@@ -131,6 +131,15 @@ vendor/bin/pint        # Laravel Pint (PSR-12-based code style)
 - `bootstrap/app.php` calls `$middleware->statefulApi()` so `auth:sanctum`-protected routes accept the session cookie from stateful domains.
 - `App\Http\Controllers\Api\AuthController`: `register` (always creates a `customer`-role account — admin/staff accounts are never self-service), `login`, `logout`, `me`. Frontend flow: `GET /sanctum/csrf-cookie` first, then `POST /api/register` or `/api/login` with the `X-XSRF-TOKEN` header (axios does this automatically with `withCredentials: true`).
 - RBAC: `App\Http\Middleware\EnsureUserHasRole` (aliased `role`) checks `$user->role->slug` against the roles passed to the middleware, e.g. `role:admin`. The `admin/*` route group (`BusinessTypeController`, `TenantController`) runs `['auth:sanctum', 'role:admin']`. This is global-role gating only — it doesn't know about `tenant_staff` membership/tenant-scoped roles, which will need a separate check once tenant-scoped routes exist.
+
+## Tenant-scoped requests
+
+- Routes: `/api/tenants/{tenant}/products`, `/api/tenants/{tenant}/services` (`App\Http\Controllers\Api\Tenant\*`). `{tenant}` is a slug.
+- `App\Http\Middleware\ResolveTenant` (aliased `tenant`, applied to the whole route group) looks up the `Tenant` by slug, 404s unless `status = active`, then points the `tenant` DB connection's `search_path` at that tenant's schema for the rest of the request (`Config::set(...) + DB::purge('tenant')` — same technique `TenantProvisioner` uses). All tenant-schema models (`Product`, `Service`, `Order`, `Booking`, etc.) declare `protected $connection = 'tenant'`, so any query they run automatically lands in whichever schema `ResolveTenant` most recently pointed at.
+- **Don't type-hint `Tenant $tenant` in tenant-scoped controller methods.** `SubstituteBindings` runs *before* custom route middleware in Laravel's default priority order, so it would try to implicit-bind `{tenant}` by id using the raw slug string and throw. `ResolveTenant` already replaces the route parameter with the resolved model (`$request->route()->setParameter('tenant', $tenant)`), so pull it via `$request->route('tenant')` if a method actually needs it — none currently do, since the search_path switch is all they rely on.
+- `App\Http\Middleware\EnsureTenantAccess` (aliased `tenant.access`, only on write routes, after `auth:sanctum` + `tenant`) allows the platform admin, the tenant's `owner_user_id`, or an active `tenant_staff` row for that (tenant, user) pair — nothing else. There's no staff-invitation endpoint yet, so in practice only the owner or a platform admin can manage a tenant's catalog today.
+- Validation's `unique:tenant.products,slug` / `Rule::unique('tenant.products', 'slug')` — the `tenant.` prefix selects the `tenant` connection (not the table's own name), scoping uniqueness to the current tenant's schema. Verified two different tenants can use the same product slug without colliding, and that a duplicate within the same tenant is still rejected.
+- Index/show routes are public (no `auth:sanctum`) — catalog browsing needs no login.
 
 ## Git conventions
 

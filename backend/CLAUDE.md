@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a Laravel 12 application. The central + tenant-schema database (see "Database architecture" below), Sanctum SPA auth, role-gated admin CRUD for tenants/business types, tenant provisioning, a tenant-scoped product/service catalog, order/booking placement, order/booking/payment fulfillment (status transitions, mark-paid), staff management, and service-time-slot scheduling (with per-slot staff eligibility enforced on bookings) are built. Check `database/migrations/`, `app/Models/`, and `routes/api.php` for the current state rather than assuming this doc stays in sync.
+This is a Laravel 12 application. The central + tenant-schema database (see "Database architecture" below), Sanctum SPA auth, role-gated admin CRUD for tenants/business types, tenant provisioning, public tenant discovery, a tenant-scoped product/service catalog, order/booking placement, order/booking/payment fulfillment (status transitions, mark-paid), staff management, and service-time-slot scheduling (with per-slot staff eligibility enforced on bookings) are built. Check `database/migrations/`, `app/Models/`, and `routes/api.php` for the current state rather than assuming this doc stays in sync.
+
+Known gaps as of this writing: hard-deleting a product/service with existing order/booking history will throw a raw FK-constraint error (no soft deletes yet); the stock-check-then-decrement and booking-capacity-check-then-insert aren't race-safe (no row locking); no image upload endpoint (Cloudinary not wired up); no in-app notifications; no scheduled jobs (e.g. auto-completing past-due bookings); no automated test coverage beyond Laravel's default skeleton tests — everything so far has been verified via manual end-to-end curl testing during development, not a repeatable suite.
 
 ## Product overview
 
@@ -134,6 +136,7 @@ vendor/bin/pint        # Laravel Pint (PSR-12-based code style)
 
 ## Tenant-scoped requests
 
+- `App\Http\Controllers\Api\TenantDiscoveryController` (`GET /api/tenants`, optional `?business_type=<slug>`; `GET /api/tenants/{tenant}`) — how a customer finds a business at all, before they know its slug. Public, `status = active` only (the show route reuses `ResolveTenant`'s active-only 404). Response is manually shaped to `id`/`name`/`slug`/`business_type` — deliberately not the raw model, since that also carries `schema_name` and `owner_user_id`, internal/admin-only details with no reason to be public.
 - Routes: `/api/tenants/{tenant}/products`, `/services`, `/orders`, `/bookings` (`App\Http\Controllers\Api\Tenant\*`). `{tenant}` is a slug.
 - `App\Http\Middleware\ResolveTenant` (aliased `tenant`, applied to the whole route group) looks up the `Tenant` by slug, 404s unless `status = active`, then points the `tenant` DB connection's `search_path` at that tenant's schema for the rest of the request (`Config::set(...) + DB::purge('tenant')` — same technique `TenantProvisioner` uses). All tenant-schema models (`Product`, `Service`, `Order`, `Booking`, etc.) declare `protected $connection = 'tenant'`, so any query they run automatically lands in whichever schema `ResolveTenant` most recently pointed at.
 - **Don't type-hint `Tenant $tenant`, or any other scalar/model route parameter, alongside `Request $request` in a tenant-scoped controller method.** Two separate footguns here, both confirmed the hard way:

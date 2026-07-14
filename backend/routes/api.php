@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Tenant\BookingController;
 use App\Http\Controllers\Api\Tenant\OrderController;
+use App\Http\Controllers\Api\Tenant\PaymentController;
 use App\Http\Controllers\Api\Tenant\ProductController;
 use App\Http\Controllers\Api\Tenant\ServiceController;
 use Illuminate\Support\Facades\Route;
@@ -51,9 +52,13 @@ Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
         Route::get('orders', [OrderController::class, 'index']);
         Route::post('orders', [OrderController::class, 'store']);
         Route::get('orders/{order}', [OrderController::class, 'show']);
+        Route::patch('orders/{order}', [OrderController::class, 'update']);
 
         Route::get('bookings', [BookingController::class, 'index']);
         Route::post('bookings', [BookingController::class, 'store']);
         Route::get('bookings/{booking}', [BookingController::class, 'show']);
+        Route::patch('bookings/{booking}', [BookingController::class, 'update']);
+
+        Route::patch('payments/{payment}', [PaymentController::class, 'update']);
     });
 });

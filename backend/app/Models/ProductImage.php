@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductImage extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'product_id',
         'url',

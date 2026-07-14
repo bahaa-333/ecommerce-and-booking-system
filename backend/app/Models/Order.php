@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Order extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'user_id',
         'status',

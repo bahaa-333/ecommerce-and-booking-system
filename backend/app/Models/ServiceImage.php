@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServiceImage extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'service_id',
         'url',

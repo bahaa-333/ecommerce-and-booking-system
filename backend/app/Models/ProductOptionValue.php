@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ProductOptionValue extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'product_option_id',
         'value',

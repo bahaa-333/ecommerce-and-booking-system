@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Service extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'name',
         'slug',

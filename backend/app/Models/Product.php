@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'name',
         'slug',

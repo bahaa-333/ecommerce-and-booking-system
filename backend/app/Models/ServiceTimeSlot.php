@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServiceTimeSlot extends Model
 {
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'service_id',
         'availability_type',

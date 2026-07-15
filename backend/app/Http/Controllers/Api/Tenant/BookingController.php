@@ -59,7 +59,13 @@ class BookingController extends Controller
         $tenant = $request->route('tenant');
 
         $validated = $request->validate([
-            'service_id' => ['required', 'integer', 'exists:tenant.services,id'],
+            // exists: queries the raw table and doesn't know about soft
+            // deletes, so a plain 'exists:tenant.services,id' would still
+            // accept an archived/deleted service's id -- whereNull excludes it.
+            'service_id' => [
+                'required', 'integer',
+                Rule::exists('tenant.services', 'id')->whereNull('deleted_at'),
+            ],
             'service_time_slot_id' => ['nullable', 'integer', 'exists:tenant.service_time_slots,id'],
             'staff_id' => ['nullable', 'integer', Rule::exists('tenant_staff', 'id')->where('tenant_id', $tenant->id)],
             'starts_at' => ['required', 'date'],

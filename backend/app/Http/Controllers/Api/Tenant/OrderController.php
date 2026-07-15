@@ -50,8 +50,17 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:tenant.products,id'],
-            'items.*.product_variant_id' => ['nullable', 'integer', 'exists:tenant.product_variants,id'],
+            // exists: queries the raw table and doesn't know about soft
+            // deletes, so a plain 'exists:tenant.products,id' would still
+            // accept an archived/deleted product's id -- whereNull excludes it.
+            'items.*.product_id' => [
+                'required', 'integer',
+                Rule::exists('tenant.products', 'id')->whereNull('deleted_at'),
+            ],
+            'items.*.product_variant_id' => [
+                'nullable', 'integer',
+                Rule::exists('tenant.product_variants', 'id')->whereNull('deleted_at'),
+            ],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', Rule::in(['pay_at_shop', 'cash_on_delivery', 'manual_payment'])],
         ]);

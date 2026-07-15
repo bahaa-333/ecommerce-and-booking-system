@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\BusinessTypeController;
 use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\StoreSignupController;
 use App\Http\Controllers\Api\TenantDiscoveryController;
 use App\Http\Controllers\Api\Tenant\BookingController;
@@ -27,6 +28,12 @@ Route::get('business-types', [BusinessTypeController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+
+    // Not tenant-scoped -- a user's notifications span every tenant
+    // they've ordered/booked with or work for.
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {

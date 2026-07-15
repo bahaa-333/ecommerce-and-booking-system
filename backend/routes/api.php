@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Tenant\ProductImageController;
 use App\Http\Controllers\Api\Tenant\ServiceController;
 use App\Http\Controllers\Api\Tenant\ServiceImageController;
 use App\Http\Controllers\Api\Tenant\ServiceTimeSlotController;
+use App\Http\Controllers\Api\Tenant\TenantProfileController;
 use App\Http\Controllers\Api\Tenant\TenantStaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +67,9 @@ Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
     Route::get('services/{service}', [ServiceController::class, 'show']);
 
     Route::middleware(['auth:sanctum', 'tenant.access'])->group(function () {
+        Route::patch('profile', [TenantProfileController::class, 'update']);
+        Route::post('profile/photo', [TenantProfileController::class, 'updatePhoto']);
+
         Route::post('products', [ProductController::class, 'store']);
         Route::put('products/{product}', [ProductController::class, 'update']);
         Route::patch('products/{product}', [ProductController::class, 'update']);

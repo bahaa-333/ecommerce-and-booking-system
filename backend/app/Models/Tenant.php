@@ -16,6 +16,9 @@ class Tenant extends Model
         'schema_name',
         'owner_user_id',
         'status',
+        'intro_text',
+        'cover_image_url',
+        'cover_image_public_id',
     ];
 
     public function businessType(): BelongsTo

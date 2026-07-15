@@ -89,7 +89,7 @@ export default function Tenants() {
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
               <tr>
                 <th className="px-5 py-3 font-medium">Business</th>

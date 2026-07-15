@@ -41,14 +41,11 @@ export default function SignUp() {
   useEffect(() => {
     const controller = new AbortController();
     apiGet("business-types", { signal: controller.signal })
-      .then(setBusinessTypes)
+      .then((res) => setBusinessTypes(res.data))
       .catch(() => {});
     return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    if (!slugTouched) setBusinessSlug(slugify(businessName));
-  }, [businessName, slugTouched]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -218,7 +215,11 @@ export default function SignUp() {
               <input
                 type="text"
                 value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBusinessName(value);
+                  if (!slugTouched) setBusinessSlug(slugify(value));
+                }}
                 placeholder="Business name"
                 className="w-full rounded-full border border-gray-200 px-5 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:border-gray-400 focus:outline-none"
               />

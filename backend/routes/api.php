@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\BusinessTypeController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\NotificationController;
@@ -37,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('stats', [DashboardController::class, 'stats']);
     Route::apiResource('business-types', BusinessTypeController::class);
     Route::apiResource('tenants', TenantController::class);
 });

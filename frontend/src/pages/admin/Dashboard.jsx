@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, CheckCircle2, ClipboardList, Tags } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardList, Tags, Users } from "lucide-react";
 import { apiGet } from "../../lib/api";
+import { StatCardSkeleton } from "../../components/Skeleton";
 
 function StatCard({ icon: Icon, label, value }) {
   return (
@@ -16,19 +17,14 @@ function StatCard({ icon: Icon, label, value }) {
 }
 
 export default function Dashboard() {
-  const [tenants, setTenants] = useState([]);
-  const [businessTypes, setBusinessTypes] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all([
-      apiGet("admin/tenants", { signal: controller.signal }),
-      apiGet("admin/business-types", { signal: controller.signal }),
-    ])
-      .then(([tenantsData, businessTypesData]) => {
-        setTenants(tenantsData);
-        setBusinessTypes(businessTypesData);
+    apiGet("admin/stats", { signal: controller.signal })
+      .then((data) => {
+        setStats(data);
         setLoading(false);
       })
       .catch(() => {
@@ -37,24 +33,29 @@ export default function Dashboard() {
     return () => controller.abort();
   }, []);
 
-  const pending = tenants.filter((t) => t.status === "pending").length;
-  const active = tenants.filter((t) => t.status === "active").length;
-
   return (
     <div>
       <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
       <p className="mt-1 text-sm text-gray-400">Platform overview across all tenants.</p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Building2} label="Total Tenants" value={loading ? "…" : tenants.length} />
-        <StatCard icon={ClipboardList} label="Pending Applications" value={loading ? "…" : pending} />
-        <StatCard icon={CheckCircle2} label="Active Tenants" value={loading ? "…" : active} />
-        <StatCard icon={Tags} label="Business Types" value={loading ? "…" : businessTypes.length} />
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => <StatCardSkeleton key={i} />)
+        ) : (
+          <>
+            <StatCard icon={Building2} label="Total Tenants" value={stats.tenants_count} />
+            <StatCard icon={ClipboardList} label="Pending Applications" value={stats.pending_tenants_count} />
+            <StatCard icon={CheckCircle2} label="Active Tenants" value={stats.active_tenants_count} />
+            <StatCard icon={Tags} label="Business Types" value={stats.business_types_count} />
+            <StatCard icon={Users} label="Total Customers" value={stats.customers_count} />
+          </>
+        )}
       </div>
 
-      {!loading && pending > 0 && (
+      {!loading && stats.pending_tenants_count > 0 && (
         <div className="mt-8 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-4 text-sm text-amber-700">
-          {pending} store application{pending === 1 ? "" : "s"} waiting for review —{" "}
+          {stats.pending_tenants_count} store application{stats.pending_tenants_count === 1 ? "" : "s"} waiting for
+          review —{" "}
           <Link to="/admin/applications" className="font-semibold underline">
             take a look
           </Link>

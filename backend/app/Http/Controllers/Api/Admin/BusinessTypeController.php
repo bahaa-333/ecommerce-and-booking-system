@@ -13,9 +13,9 @@ class BusinessTypeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return BusinessType::orderBy('name')->get();
+        return BusinessType::orderBy('name')->paginate((int) $request->integer('per_page', 15));
     }
 
     /**

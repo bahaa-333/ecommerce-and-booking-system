@@ -16,10 +16,25 @@ class TenantController extends Controller
 
     /**
      * Display a listing of the resource.
+     *
+     * Optional ?status= filter and ?search= (matched against name, case-
+     * insensitive via ilike since the DB is Postgres) so the admin
+     * Tenants/Applications tables can filter server-side instead of
+     * fetching every tenant to filter client-side.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Tenant::with(['businessType', 'owner'])->orderBy('name')->get();
+        $query = Tenant::with(['businessType', 'owner']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('search')) {
+            $query->where('name', 'ilike', '%'.$request->string('search').'%');
+        }
+
+        return $query->orderBy('name')->paginate((int) $request->integer('per_page', 15));
     }
 
     /**

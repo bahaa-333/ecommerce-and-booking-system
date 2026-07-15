@@ -32,6 +32,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
             $table->string('url');
+            $table->string('public_id');
             $table->unsignedTinyInteger('position')->default(0);
             $table->timestamps();
         });

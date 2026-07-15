@@ -12,6 +12,7 @@ class ProductVariantImage extends Model
     protected $fillable = [
         'product_variant_id',
         'url',
+        'public_id',
         'position',
     ];
 

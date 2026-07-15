@@ -30,6 +30,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->string('url');
+            $table->string('public_id');
             $table->unsignedTinyInteger('position')->default(0);
             $table->timestamps();
         });
@@ -77,6 +78,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_variant_id')->constrained('product_variants')->cascadeOnDelete();
             $table->string('url');
+            $table->string('public_id');
             $table->unsignedTinyInteger('position')->default(0);
             $table->timestamps();
         });

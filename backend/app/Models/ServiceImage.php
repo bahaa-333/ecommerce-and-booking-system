@@ -12,6 +12,7 @@ class ServiceImage extends Model
     protected $fillable = [
         'service_id',
         'url',
+        'public_id',
         'position',
     ];
 

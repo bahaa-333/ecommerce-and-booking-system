@@ -6,9 +6,12 @@ use App\Enums\CatalogStatus;
 use App\Enums\DurationUnit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Service extends Model
 {
+    use SoftDeletes;
+
     protected $connection = 'tenant';
 
     protected $fillable = [

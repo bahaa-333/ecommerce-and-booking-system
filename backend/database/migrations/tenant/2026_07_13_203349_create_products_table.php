@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('has_variants')->default(false);
             $table->string('status')->default('active');
             $table->timestamps();
+            $table->softDeletes();
         });
 
         // Cloudinary URLs — max 4 per product, enforced at the application level, not here.
@@ -59,6 +60,7 @@ return new class extends Migration
             $table->unsignedInteger('stock_quantity')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         // Which option value(s) make up a given variant, e.g. variant #1 = {Large, Red}.

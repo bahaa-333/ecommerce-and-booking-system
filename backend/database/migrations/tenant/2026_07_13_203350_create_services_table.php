@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('advance_booking_unit')->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
+            $table->softDeletes();
         });
 
         // Cloudinary URLs — max 4 per service, enforced at the application level, not here.

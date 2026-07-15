@@ -5,9 +5,12 @@ namespace App\Models;
 use App\Enums\CatalogStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use SoftDeletes;
+
     protected $connection = 'tenant';
 
     protected $fillable = [

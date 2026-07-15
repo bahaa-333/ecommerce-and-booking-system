@@ -35,9 +35,13 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * withTrashed(): a historical booking shouldn't lose its service detail
+     * just because the service was later soft-deleted.
+     */
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(Service::class)->withTrashed();
     }
 
     public function timeSlot(): BelongsTo

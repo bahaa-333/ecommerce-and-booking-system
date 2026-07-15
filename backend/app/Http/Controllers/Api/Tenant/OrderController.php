@@ -33,13 +33,13 @@ class OrderController extends Controller
         $tenant = $request->route('tenant');
         $user = $request->user();
 
-        $query = Order::with('items.product');
+        $query = Order::with(['user', 'items.product']);
 
         if (! $tenant->isManagedBy($user)) {
             $query->where('user_id', $user->id);
         }
 
-        return $query->orderByDesc('placed_at')->get();
+        return $query->orderByDesc('placed_at')->paginate((int) $request->integer('per_page', 15));
     }
 
     /**

@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\Admin\BusinessTypeController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MyTenantsController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\StoreSignupController;
 use App\Http\Controllers\Api\TenantDiscoveryController;
+use App\Http\Controllers\Api\Tenant\AnalyticsController;
 use App\Http\Controllers\Api\Tenant\BookingController;
 use App\Http\Controllers\Api\Tenant\OrderController;
 use App\Http\Controllers\Api\Tenant\PaymentController;
@@ -35,6 +37,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    // Which tenants this user can open the business portal for -- see
+    // MyTenantsController for why this can't be derived any other way.
+    Route::get('my-tenants', [MyTenantsController::class, 'index']);
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
@@ -96,11 +102,15 @@ Route::prefix('tenants/{tenant}')->middleware('tenant')->group(function () {
         Route::get('bookings/{booking}', [BookingController::class, 'show']);
         Route::patch('bookings/{booking}', [BookingController::class, 'update']);
 
+        Route::get('payments', [PaymentController::class, 'index']);
         Route::patch('payments/{payment}', [PaymentController::class, 'update']);
 
         Route::get('staff', [TenantStaffController::class, 'index']);
+        Route::get('staff/lookup', [TenantStaffController::class, 'lookup']);
         Route::post('staff', [TenantStaffController::class, 'store']);
         Route::patch('staff/{staff}', [TenantStaffController::class, 'update']);
         Route::delete('staff/{staff}', [TenantStaffController::class, 'destroy']);
+
+        Route::get('analytics', [AnalyticsController::class, 'index']);
     });
 });

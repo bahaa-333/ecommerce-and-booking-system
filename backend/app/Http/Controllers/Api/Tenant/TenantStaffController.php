@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\TenantStaff;
+use App\Models\User;
 use App\Notifications\AddedAsTenantStaff;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -12,6 +13,40 @@ use Illuminate\Validation\Rule;
 
 class TenantStaffController extends Controller
 {
+    /**
+     * Look up an already-registered user by exact email, so the "add
+     * staff" form can resolve an email to the user_id store() actually
+     * needs -- users aren't publicly searchable, so without this the only
+     * way to get a user_id would be a raw DB lookup. isAdministeredBy-gated,
+     * same as store(): this is part of growing the roster, not day-to-day
+     * catalog/order work.
+     */
+    public function lookup(Request $request)
+    {
+        /** @var Tenant $tenant */
+        $tenant = $request->route('tenant');
+
+        if (! $tenant->isAdministeredBy($request->user())) {
+            abort(403, 'This action is unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email'],
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user) {
+            return response()->json(['message' => 'No user found with that email.'], Response::HTTP_NOT_FOUND);
+        }
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -29,7 +64,7 @@ class TenantStaffController extends Controller
             abort(403, 'This action is unauthorized.');
         }
 
-        return $tenant->staff()->with('user')->get();
+        return $tenant->staff()->with('user')->paginate((int) $request->integer('per_page', 15));
     }
 
     /**

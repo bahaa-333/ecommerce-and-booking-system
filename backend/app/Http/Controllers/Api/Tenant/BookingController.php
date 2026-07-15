@@ -32,13 +32,13 @@ class BookingController extends Controller
         $tenant = $request->route('tenant');
         $user = $request->user();
 
-        $query = Booking::with(['service', 'timeSlot', 'staff']);
+        $query = Booking::with(['user', 'service', 'timeSlot', 'staff.user']);
 
         if (! $tenant->isManagedBy($user)) {
             $query->where('user_id', $user->id);
         }
 
-        return $query->orderByDesc('starts_at')->get();
+        return $query->orderByDesc('starts_at')->paginate((int) $request->integer('per_page', 15));
     }
 
     /**

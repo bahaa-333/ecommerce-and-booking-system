@@ -20,9 +20,11 @@ class ProductController extends Controller
      * using the raw slug and blow up. ResolveTenant already switched the
      * 'tenant' connection's search_path, which is all these methods need.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Product::with('images')->orderBy('name')->get();
+        return Product::with('images')
+            ->orderBy('name')
+            ->paginate((int) $request->integer('per_page', 15));
     }
 
     /**

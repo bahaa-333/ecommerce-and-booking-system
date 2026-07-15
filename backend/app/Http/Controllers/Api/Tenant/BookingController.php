@@ -52,6 +52,15 @@ class BookingController extends Controller
      * checked against "is this an active staff member of this tenant" at
      * all, since a slot-less booking has no eligibility list to check
      * against.
+     *
+     * The service row is locked (lockForUpdate) for the whole capacity
+     * check + insert: without it, two simultaneous requests for the last
+     * open slot could both count the same (pre-insert) number of
+     * overlapping bookings, both pass the capacity check, and both insert
+     * -- overbooking by however many requests raced. The lock makes the
+     * second request wait for the first transaction to commit (its new
+     * booking now counts) or roll back before it counts, so its check sees
+     * the real number.
      */
     public function store(Request $request)
     {
@@ -73,59 +82,59 @@ class BookingController extends Controller
             'payment_method' => ['required', Rule::in(['pay_at_shop', 'cash_on_delivery', 'manual_payment'])],
         ]);
 
-        $service = Service::findOrFail($validated['service_id']);
+        $booking = DB::connection('tenant')->transaction(function () use ($request, $validated) {
+            $service = Service::lockForUpdate()->findOrFail($validated['service_id']);
 
-        $timeSlot = null;
-        if (! empty($validated['service_time_slot_id'])) {
-            $timeSlot = ServiceTimeSlot::where('id', $validated['service_time_slot_id'])
-                ->where('service_id', $service->id)
-                ->first();
+            $timeSlot = null;
+            if (! empty($validated['service_time_slot_id'])) {
+                $timeSlot = ServiceTimeSlot::where('id', $validated['service_time_slot_id'])
+                    ->where('service_id', $service->id)
+                    ->first();
 
-            if (! $timeSlot) {
+                if (! $timeSlot) {
+                    throw ValidationException::withMessages([
+                        'service_time_slot_id' => ['This time slot does not belong to the selected service.'],
+                    ]);
+                }
+            }
+
+            if ($timeSlot && ! empty($validated['staff_id'])) {
+                $eligible = $timeSlot->staff()->where('tenant_staff.id', $validated['staff_id'])->exists();
+
+                if (! $eligible) {
+                    throw ValidationException::withMessages([
+                        'staff_id' => ['This staff member is not assigned to the selected time slot.'],
+                    ]);
+                }
+            }
+
+            $startsAt = Carbon::parse($validated['starts_at']);
+            $endsAt = isset($validated['ends_at'])
+                ? Carbon::parse($validated['ends_at'])
+                : $this->deriveEndsAt($startsAt, $service);
+
+            if ($service->advance_booking_value && $service->advance_booking_unit) {
+                $earliestAllowed = $this->addDuration(now(), $service->advance_booking_value, $service->advance_booking_unit);
+
+                if ($startsAt->lt($earliestAllowed)) {
+                    throw ValidationException::withMessages([
+                        'starts_at' => ["This service requires at least {$service->advance_booking_value} {$service->advance_booking_unit->value} advance notice."],
+                    ]);
+                }
+            }
+
+            $overlapping = Booking::where('service_id', $service->id)
+                ->where('status', '!=', 'cancelled')
+                ->where('starts_at', '<', $endsAt)
+                ->where('ends_at', '>', $startsAt)
+                ->count();
+
+            if ($overlapping >= $service->capacity) {
                 throw ValidationException::withMessages([
-                    'service_time_slot_id' => ['This time slot does not belong to the selected service.'],
+                    'starts_at' => ['This service is fully booked for the selected time.'],
                 ]);
             }
-        }
 
-        if ($timeSlot && ! empty($validated['staff_id'])) {
-            $eligible = $timeSlot->staff()->where('tenant_staff.id', $validated['staff_id'])->exists();
-
-            if (! $eligible) {
-                throw ValidationException::withMessages([
-                    'staff_id' => ['This staff member is not assigned to the selected time slot.'],
-                ]);
-            }
-        }
-
-        $startsAt = Carbon::parse($validated['starts_at']);
-        $endsAt = isset($validated['ends_at'])
-            ? Carbon::parse($validated['ends_at'])
-            : $this->deriveEndsAt($startsAt, $service);
-
-        if ($service->advance_booking_value && $service->advance_booking_unit) {
-            $earliestAllowed = $this->addDuration(now(), $service->advance_booking_value, $service->advance_booking_unit);
-
-            if ($startsAt->lt($earliestAllowed)) {
-                throw ValidationException::withMessages([
-                    'starts_at' => ["This service requires at least {$service->advance_booking_value} {$service->advance_booking_unit->value} advance notice."],
-                ]);
-            }
-        }
-
-        $overlapping = Booking::where('service_id', $service->id)
-            ->where('status', '!=', 'cancelled')
-            ->where('starts_at', '<', $endsAt)
-            ->where('ends_at', '>', $startsAt)
-            ->count();
-
-        if ($overlapping >= $service->capacity) {
-            throw ValidationException::withMessages([
-                'starts_at' => ['This service is fully booked for the selected time.'],
-            ]);
-        }
-
-        $booking = DB::connection('tenant')->transaction(function () use ($request, $service, $timeSlot, $validated, $startsAt, $endsAt) {
             $booking = Booking::create([
                 'user_id' => $request->user()->id,
                 'service_id' => $service->id,

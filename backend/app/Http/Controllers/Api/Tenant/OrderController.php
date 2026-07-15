@@ -45,6 +45,14 @@ class OrderController extends Controller
      * where it's tracked, and opens an unpaid Payment for the chosen
      * method -- there's no real payment gateway yet, PaymentMethod is
      * pay-in-person/manual options only.
+     *
+     * The product/variant row is locked (lockForUpdate) inside the
+     * transaction before the stock check: without it, two simultaneous
+     * requests for the last unit could both read stock_quantity=1, both
+     * pass the check, and both decrement -- overselling by however many
+     * requests raced. The lock makes the second request wait for the
+     * first transaction to commit (updated stock) or roll back (unchanged
+     * stock) before it reads, so its check sees the real number.
      */
     public function store(Request $request)
     {
@@ -70,12 +78,13 @@ class OrderController extends Controller
             $lines = [];
 
             foreach ($validated['items'] as $item) {
-                $product = Product::findOrFail($item['product_id']);
+                $product = Product::lockForUpdate()->findOrFail($item['product_id']);
 
                 $variant = null;
                 if (! empty($item['product_variant_id'])) {
                     $variant = ProductVariant::where('id', $item['product_variant_id'])
                         ->where('product_id', $product->id)
+                        ->lockForUpdate()
                         ->first();
 
                     if (! $variant) {

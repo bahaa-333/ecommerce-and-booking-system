@@ -169,7 +169,7 @@ class BookingController extends Controller
      */
     public function show(Request $request)
     {
-        $booking = Booking::with(['service', 'timeSlot', 'staff', 'payments'])
+        $booking = Booking::with(['service', 'timeSlot', 'staff.user', 'payments'])
             ->findOrFail((int) $request->route('booking'));
 
         /** @var Tenant $tenant */

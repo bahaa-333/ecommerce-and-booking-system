@@ -19,7 +19,7 @@ class ServiceTimeSlotController extends Controller
     public function index(Request $request)
     {
         return ServiceTimeSlot::where('service_id', (int) $request->route('service'))
-            ->with('staff')
+            ->with('staff.user')
             ->get();
     }
 

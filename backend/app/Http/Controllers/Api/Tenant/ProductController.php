@@ -62,7 +62,8 @@ class ProductController extends Controller
      */
     public function show(Request $request)
     {
-        return Product::with(['images', 'options.values'])->findOrFail((int) $request->route('product'));
+        return Product::with(['images', 'options.values', 'variants.optionValues', 'variants.images'])
+            ->findOrFail((int) $request->route('product'));
     }
 
     /**

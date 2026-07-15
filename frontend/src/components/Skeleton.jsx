@@ -26,3 +26,15 @@ export function StatCardSkeleton() {
     </div>
   );
 }
+
+export function CardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+      <Skeleton className="aspect-square w-full rounded-none" />
+      <div className="p-4">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="mt-2 h-4 w-1/3" />
+      </div>
+    </div>
+  );
+}

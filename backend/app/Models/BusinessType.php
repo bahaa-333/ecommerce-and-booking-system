@@ -9,5 +9,6 @@ class BusinessType extends Model
     protected $fillable = [
         'name',
         'slug',
+        'color',
     ];
 }

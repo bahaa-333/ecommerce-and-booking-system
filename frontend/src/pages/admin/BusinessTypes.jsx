@@ -26,11 +26,13 @@ export default function BusinessTypes() {
   const [error, setError] = useState("");
 
   const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState("#f5a623");
   const [creating, setCreating] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
+  const [editColor, setEditColor] = useState("#f5a623");
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -43,6 +45,7 @@ export default function BusinessTypes() {
       await apiPost("admin/business-types", {
         name: newName.trim(),
         slug: snakify(newName),
+        color: newColor,
       });
       setNewName("");
       reload();
@@ -57,13 +60,18 @@ export default function BusinessTypes() {
     setEditingId(businessType.id);
     setEditName(businessType.name);
     setEditSlug(businessType.slug);
+    setEditColor(businessType.color);
   }
 
   async function saveEdit(id) {
     setError("");
     setSavingId(id);
     try {
-      const updated = await apiPatch(`admin/business-types/${id}`, { name: editName, slug: editSlug });
+      const updated = await apiPatch(`admin/business-types/${id}`, {
+        name: editName,
+        slug: editSlug,
+        color: editColor,
+      });
       setBusinessTypes((prev) => prev.map((bt) => (bt.id === id ? updated : bt)));
       setEditingId(null);
     } catch (err) {
@@ -92,12 +100,19 @@ export default function BusinessTypes() {
       <h1 className="text-2xl font-semibold text-gray-900">Business Types</h1>
       <p className="mt-1 text-sm text-gray-400">The business models tenants can register under.</p>
 
-      <form onSubmit={handleCreate} className="mt-6 flex flex-wrap gap-3">
+      <form onSubmit={handleCreate} className="mt-6 flex flex-wrap items-center gap-3">
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="New business type name"
           className="w-full rounded-full border border-gray-200 px-5 py-2.5 text-sm placeholder:text-gray-300 focus:border-gray-400 focus:outline-none sm:w-72"
+        />
+        <input
+          type="color"
+          value={newColor}
+          onChange={(e) => setNewColor(e.target.value)}
+          aria-label="Color"
+          className="h-10 w-10 shrink-0 cursor-pointer rounded-full border border-gray-200 p-0.5"
         />
         <button
           type="submit"
@@ -115,19 +130,20 @@ export default function BusinessTypes() {
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
               <tr>
+                <th className="px-5 py-3 font-medium">Color</th>
                 <th className="px-5 py-3 font-medium">Name</th>
                 <th className="px-5 py-3 font-medium">Slug</th>
                 <th className="px-5 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <TableSkeleton rows={5} columns={3} />}
+              {loading && <TableSkeleton rows={5} columns={4} />}
               {!loading && businessTypes.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-5 py-10 text-center text-gray-400">
+                  <td colSpan={4} className="px-5 py-10 text-center text-gray-400">
                     No business types yet.
                   </td>
                 </tr>
@@ -137,6 +153,15 @@ export default function BusinessTypes() {
                   <tr key={businessType.id} className="border-b border-gray-50 last:border-0">
                     {editingId === businessType.id ? (
                       <>
+                        <td className="px-5 py-3">
+                          <input
+                            type="color"
+                            value={editColor}
+                            onChange={(e) => setEditColor(e.target.value)}
+                            aria-label="Color"
+                            className="h-8 w-8 cursor-pointer rounded-full border border-gray-200 p-0.5"
+                          />
+                        </td>
                         <td className="px-5 py-3">
                           <input
                             value={editName}
@@ -175,6 +200,12 @@ export default function BusinessTypes() {
                       </>
                     ) : (
                       <>
+                        <td className="px-5 py-4">
+                          <span
+                            className="inline-block h-5 w-5 rounded-full border border-black/5"
+                            style={{ backgroundColor: businessType.color }}
+                          />
+                        </td>
                         <td className="px-5 py-4 font-medium text-gray-900">{businessType.name}</td>
                         <td className="px-5 py-4 text-gray-400">{businessType.slug}</td>
                         <td className="px-5 py-4 text-right">

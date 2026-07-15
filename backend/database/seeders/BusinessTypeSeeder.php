@@ -14,15 +14,15 @@ class BusinessTypeSeeder extends Seeder
     public function run(): void
     {
         $businessTypes = [
-            ['name' => 'Retail Shop', 'slug' => 'retail_shop'],
-            ['name' => 'Restaurant', 'slug' => 'restaurant'],
-            ['name' => 'Cafe', 'slug' => 'cafe'],
-            ['name' => 'Salon / Barber', 'slug' => 'salon_barber'],
-            ['name' => 'Gym', 'slug' => 'gym'],
-            ['name' => 'Hotel', 'slug' => 'hotel'],
-            ['name' => 'Guest House', 'slug' => 'guest_house'],
-            ['name' => 'Events', 'slug' => 'events'],
-            ['name' => 'Workshops', 'slug' => 'workshops'],
+            ['name' => 'Retail Shop', 'slug' => 'retail_shop', 'color' => '#f5a623'],
+            ['name' => 'Restaurant', 'slug' => 'restaurant', 'color' => '#e0532c'],
+            ['name' => 'Cafe', 'slug' => 'cafe', 'color' => '#8b5e34'],
+            ['name' => 'Salon / Barber', 'slug' => 'salon_barber', 'color' => '#d6336c'],
+            ['name' => 'Gym', 'slug' => 'gym', 'color' => '#2f9e44'],
+            ['name' => 'Hotel', 'slug' => 'hotel', 'color' => '#2b6cb0'],
+            ['name' => 'Guest House', 'slug' => 'guest_house', 'color' => '#0891b2'],
+            ['name' => 'Events', 'slug' => 'events', 'color' => '#7c3aed'],
+            ['name' => 'Workshops', 'slug' => 'workshops', 'color' => '#ca8a04'],
         ];
 
         foreach ($businessTypes as $businessType) {

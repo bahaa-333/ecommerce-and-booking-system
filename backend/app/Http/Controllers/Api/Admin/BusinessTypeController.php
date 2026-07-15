@@ -26,6 +26,7 @@ class BusinessTypeController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:business_types,slug'],
+            'color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
 
         $businessType = BusinessType::create($validated);
@@ -52,6 +53,7 @@ class BusinessTypeController extends Controller
                 'sometimes', 'required', 'string', 'max:255',
                 Rule::unique('business_types', 'slug')->ignore($businessType->id),
             ],
+            'color' => ['sometimes', 'required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
 
         $businessType->update($validated);

@@ -60,6 +60,14 @@ return [
             'report' => false,
         ],
 
+        // Read directly by CloudinaryServiceProvider's singleton binding (not
+        // config/cloudinary.php, despite that file's name) as
+        // filesystems.disks.cloudinary.url.
+        'cloudinary' => [
+            'driver' => 'cloudinary',
+            'url' => env('CLOUDINARY_URL'),
+        ],
+
     ],
 
     /*

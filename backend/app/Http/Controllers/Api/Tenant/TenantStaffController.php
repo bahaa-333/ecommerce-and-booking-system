@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\TenantStaff;
+use App\Notifications\AddedAsTenantStaff;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
@@ -63,6 +64,8 @@ class TenantStaffController extends Controller
             'role' => $validated['role'] ?? 'staff',
             'status' => $validated['status'] ?? 'active',
         ]);
+
+        $staff->user->notify(new AddedAsTenantStaff($tenant, $staff->role));
 
         return response()->json($staff->load('user'), Response::HTTP_CREATED);
     }

@@ -10,6 +10,7 @@ use App\Models\Booking;
 use App\Models\Service;
 use App\Models\ServiceTimeSlot;
 use App\Models\Tenant;
+use App\Notifications\BookingStatusChanged;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -187,7 +188,8 @@ class BookingController extends Controller
      * Tenant managers (see Tenant::isManagedBy) can make any valid
      * transition (confirm, complete, cancel); the customer who made the
      * booking may only cancel it. Unlike orders, there's no stock to
-     * restore on cancellation.
+     * restore on cancellation. Notifies the customer of the new status
+     * (database notification).
      */
     public function update(Request $request)
     {
@@ -219,6 +221,8 @@ class BookingController extends Controller
         }
 
         $booking->update(['status' => $newStatus]);
+
+        $booking->user->notify(new BookingStatusChanged($booking, $tenant));
 
         return $booking->load(['service', 'timeSlot', 'staff', 'payments']);
     }

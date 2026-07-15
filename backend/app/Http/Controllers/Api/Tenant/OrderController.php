@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Tenant;
+use App\Notifications\OrderStatusChanged;
+use App\Services\OrderCancellationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +19,8 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    public function __construct(private OrderCancellationService $cancellationService) {}
+
     /**
      * Display a listing of the resource.
      *
@@ -184,7 +188,8 @@ class OrderController extends Controller
      * transition (confirm, complete, cancel); the customer who placed the
      * order may only cancel it. Cancelling restores stock_quantity for any
      * tracked product/variant in the order, since it was decremented at
-     * placement time.
+     * placement time. Notifies the customer of the new status (database
+     * notification).
      */
     public function update(Request $request)
     {
@@ -215,19 +220,13 @@ class OrderController extends Controller
             ]);
         }
 
-        DB::connection('tenant')->transaction(function () use ($order, $newStatus) {
-            if ($newStatus === TransactionStatus::Cancelled) {
-                foreach ($order->items as $item) {
-                    $stockHolder = $item->product_variant_id ? $item->variant : $item->product;
-
-                    if ($stockHolder && $stockHolder->stock_quantity !== null) {
-                        $stockHolder->increment('stock_quantity', $item->quantity);
-                    }
-                }
-            }
-
+        if ($newStatus === TransactionStatus::Cancelled) {
+            $this->cancellationService->cancel($order);
+        } else {
             $order->update(['status' => $newStatus]);
-        });
+        }
+
+        $order->user->notify(new OrderStatusChanged($order, $tenant));
 
         return $order->load(['items.product', 'payments']);
     }

@@ -21,6 +21,18 @@ export async function apiGet(path, { signal } = {}) {
   return response.data;
 }
 
+export async function apiPatch(path, data) {
+  await ensureCsrfCookie();
+  const response = await api.patch(`/api/${path}`, data);
+  return response.data;
+}
+
+export async function apiDelete(path) {
+  await ensureCsrfCookie();
+  const response = await api.delete(`/api/${path}`);
+  return response.data;
+}
+
 export function extractFieldErrors(error) {
   return error?.response?.data?.errors ?? {};
 }

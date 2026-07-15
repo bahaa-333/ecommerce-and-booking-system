@@ -1,22 +1,63 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
+import { useAuth } from "../lib/AuthContext";
+import { extractErrorMessage } from "../lib/api";
 
 export default function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [loggedInAsNonAdmin, setLoggedInAsNonAdmin] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const user = await login(email, password);
+      if (user.role?.slug === "admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        setLoggedInAsNonAdmin(true);
+      }
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loggedInAsNonAdmin) {
+    return (
+      <AuthLayout>
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">You're logged in</h1>
+          <p className="mt-3 text-sm text-gray-500">
+            There's no customer or staff portal here yet — just the admin panel.
+          </p>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout>
-      <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">
-        Welcome back
-      </h1>
+      <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Welcome back</h1>
       <p className="mt-2 text-sm text-gray-400">Please enter your details.</p>
 
-      <form onSubmit={(e) => e.preventDefault()} className="mt-8 space-y-4">
+      {error && (
+        <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <input
           type="email"
           autoComplete="email"
@@ -66,9 +107,10 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full rounded-full bg-[#f5a623] py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#e6981a]"
+          disabled={submitting}
+          className="w-full rounded-full bg-[#f5a623] py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#e6981a] disabled:opacity-60"
         >
-          Log In
+          {submitting ? "Logging in…" : "Log In"}
         </button>
       </form>
 

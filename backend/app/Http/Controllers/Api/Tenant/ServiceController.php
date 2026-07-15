@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Tenant;
 
+use App\Enums\CatalogStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use Illuminate\Http\Request;
@@ -93,11 +94,15 @@ class ServiceController extends Controller
     /**
      * Remove the specified resource from storage.
      *
+     * Soft delete, not a hard one — see ProductController::destroy() for
+     * why (same reasoning: bookings.service_id isn't nullable/cascading).
      * Gated by the 'tenant.access' middleware (owner/admin/staff only).
      */
     public function destroy(Request $request)
     {
-        Service::findOrFail((int) $request->route('service'))->delete();
+        $service = Service::findOrFail((int) $request->route('service'));
+        $service->update(['status' => CatalogStatus::Archived]);
+        $service->delete();
 
         return response()->noContent();
     }

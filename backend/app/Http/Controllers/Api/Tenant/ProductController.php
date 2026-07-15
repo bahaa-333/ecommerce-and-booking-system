@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Tenant;
 
+use App\Enums\CatalogStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -93,11 +94,19 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      *
+     * Soft delete, not a hard one: a hard delete would throw a raw
+     * FK-constraint error the moment the product has any order history
+     * (order_items.product_id isn't nullable/cascading on purpose --
+     * losing a past order's line-item detail would be worse than refusing
+     * the delete). Archiving the status too means it reads as
+     * discontinued even for any code path that queries withTrashed().
      * Gated by the 'tenant.access' middleware (owner/admin/staff only).
      */
     public function destroy(Request $request)
     {
-        Product::findOrFail((int) $request->route('product'))->delete();
+        $product = Product::findOrFail((int) $request->route('product'));
+        $product->update(['status' => CatalogStatus::Archived]);
+        $product->delete();
 
         return response()->noContent();
     }

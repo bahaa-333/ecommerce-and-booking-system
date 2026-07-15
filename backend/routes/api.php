@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\Admin\BusinessTypeController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\TenantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MyBookingsController;
+use App\Http\Controllers\Api\MyOrdersController;
 use App\Http\Controllers\Api\MyTenantsController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\StoreSignupController;
@@ -42,6 +44,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Which tenants this user can open the business portal for -- see
     // MyTenantsController for why this can't be derived any other way.
     Route::get('my-tenants', [MyTenantsController::class, 'index']);
+
+    // Cross-tenant order/booking history for the customer portal -- see
+    // MyOrdersController/MyBookingsController for why these iterate every
+    // tenant schema instead of a single query.
+    Route::get('my-orders', [MyOrdersController::class, 'index']);
+    Route::get('my-bookings', [MyBookingsController::class, 'index']);
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {

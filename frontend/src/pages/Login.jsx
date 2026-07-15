@@ -15,7 +15,6 @@ export default function Login() {
   const [remember, setRemember] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [loggedInAsNonAdmin, setLoggedInAsNonAdmin] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -23,29 +22,13 @@ export default function Login() {
     setSubmitting(true);
     try {
       const user = await login(email, password);
-      if (user.role?.slug === "admin") {
-        navigate("/admin/dashboard", { replace: true });
-      } else {
-        setLoggedInAsNonAdmin(true);
-      }
+      const destination = { admin: "/admin/dashboard", business: "/business" }[user.portal] ?? "/";
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (loggedInAsNonAdmin) {
-    return (
-      <AuthLayout>
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">You're logged in</h1>
-          <p className="mt-3 text-sm text-gray-500">
-            There's no customer or staff portal here yet — just the admin panel.
-          </p>
-        </div>
-      </AuthLayout>
-    );
   }
 
   return (

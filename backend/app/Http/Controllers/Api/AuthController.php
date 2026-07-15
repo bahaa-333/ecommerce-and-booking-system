@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,7 +57,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return $request->user()->load('role');
+        return $this->withPortal($request->user());
     }
 
     /**
@@ -77,6 +78,29 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return $request->user()->load('role');
+        return $this->withPortal($request->user());
+    }
+
+    /**
+     * Which portal this user should land in after login: the admin panel,
+     * the business/staff portal, or the customer portal. Computed
+     * server-side (not just role.slug === 'admin' on the frontend) so
+     * business access -- owning or actively staffing any tenant, the same
+     * condition MyTenantsController uses -- is the single source of truth
+     * for where a non-admin user lands, not re-derived client-side.
+     */
+    private function withPortal(User $user): array
+    {
+        $user->load('role');
+
+        $portal = match (true) {
+            $user->role?->slug === 'admin' => 'admin',
+            Tenant::where('owner_user_id', $user->id)
+                ->orWhereHas('staff', fn ($query) => $query->where('user_id', $user->id)->where('status', 'active'))
+                ->exists() => 'business',
+            default => 'customer',
+        };
+
+        return [...$user->toArray(), 'portal' => $portal];
     }
 }

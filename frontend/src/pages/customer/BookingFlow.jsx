@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { apiGet, apiPost, extractErrorMessage } from "../../lib/api";
+import { Skeleton } from "../../components/Skeleton";
 
 const PAYMENT_METHODS = [
   { value: "pay_at_shop", label: "Pay at shop" },
   { value: "cash_on_delivery", label: "Cash on delivery" },
   { value: "manual_payment", label: "Manual payment" },
 ];
+
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function addDuration(date, value, unit) {
   const result = new Date(date);
@@ -52,10 +55,27 @@ export default function BookingFlow() {
   }, [tenant.slug, serviceId]);
 
   const minDate = useMemo(() => {
-    if (!service?.advance_booking_value || !service?.advance_booking_unit) return undefined;
-    const earliest = addDuration(new Date(), service.advance_booking_value, service.advance_booking_unit);
+    const earliest = service?.advance_booking_value && service?.advance_booking_unit
+      ? addDuration(new Date(), service.advance_booking_value, service.advance_booking_unit)
+      : new Date();
     return earliest.toISOString().slice(0, 10);
   }, [service]);
+
+  // Default the date picker to the earliest bookable day instead of leaving
+  // it empty, so availability is visible immediately without the customer
+  // having to guess a date first.
+  useEffect(() => {
+    if (minDate) setDate((prev) => prev || minDate);
+  }, [minDate]);
+
+  const availableWeekdays = useMemo(() => {
+    const days = new Set(
+      timeSlots
+        .filter((slot) => slot.availability_type === "standing")
+        .map((slot) => slot.day_of_week)
+    );
+    return [...days].sort().map((d) => WEEKDAY_NAMES[d]);
+  }, [timeSlots]);
 
   const matchingSlots = useMemo(() => {
     if (!date) return [];
@@ -80,7 +100,17 @@ export default function BookingFlow() {
   }, [matchingSlots]);
 
   if (loading) {
-    return <div className="py-24 text-center text-sm text-gray-400">Loading…</div>;
+    return (
+      <div className="mx-auto max-w-lg">
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="mt-2 h-4 w-40" />
+        <div className="mt-6 space-y-5">
+          <Skeleton className="h-12 w-full rounded-full" />
+          <Skeleton className="h-12 w-full rounded-full" />
+          <Skeleton className="h-12 w-full rounded-full" />
+        </div>
+      </div>
+    );
   }
 
   if (!service) {
@@ -137,7 +167,10 @@ export default function BookingFlow() {
         </div>
 
         {date && matchingSlots.length === 0 && (
-          <p className="text-sm text-gray-400">This business isn&apos;t available on that date. Try another day.</p>
+          <p className="text-sm text-gray-400">
+            Not available on that date.
+            {availableWeekdays.length > 0 && ` Available ${availableWeekdays.join(", ")}.`}
+          </p>
         )}
 
         {matchingSlots.length > 0 && (

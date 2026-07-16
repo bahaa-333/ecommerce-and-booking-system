@@ -10,10 +10,13 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureTenantAccess
 {
     /**
-     * Gate write access to a tenant's catalog to whoever can manage it —
-     * see Tenant::isManagedBy(). Must run after auth:sanctum and
-     * ResolveTenant (needs both the user and the resolved Tenant on the
-     * route).
+     * Gate catalog/schedule/storefront management to the tenant's owner or
+     * an 'admin'-role staff member — see Tenant::isAdministeredBy(). This is
+     * deliberately the stricter check, not isManagedBy(): a plain staff
+     * member fulfills orders/bookings day-to-day but doesn't get to change
+     * what's for sale, the schedule, or the public storefront. Must run
+     * after auth:sanctum and ResolveTenant (needs both the user and the
+     * resolved Tenant on the route).
      *
      * @param  Closure(Request): (Response)  $next
      */
@@ -22,7 +25,7 @@ class EnsureTenantAccess
         /** @var Tenant $tenant */
         $tenant = $request->route('tenant');
 
-        if (! $tenant->isManagedBy($request->user())) {
+        if (! $tenant->isAdministeredBy($request->user())) {
             abort(403, 'This action is unauthorized.');
         }
 

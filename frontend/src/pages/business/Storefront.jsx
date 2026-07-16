@@ -69,6 +69,15 @@ export default function Storefront() {
     return <div className="py-24 text-center text-sm text-gray-400">Loading…</div>;
   }
 
+  if (!tenant?.is_admin) {
+    return (
+      <div className="py-24 text-center">
+        <h1 className="text-xl font-semibold text-gray-900">Storefront</h1>
+        <p className="mt-2 text-sm text-gray-400">Only the owner or a tenant admin can edit storefront settings.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-semibold text-gray-900">Storefront</h1>

@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 class AnalyticsController extends Controller
 {
     /**
-     * Manager-only (Tenant::isManagedBy), same gate as the payments list.
+     * Owner/admin-only (Tenant::isAdministeredBy) -- revenue and other
+     * business-wide metrics aren't day-to-day fulfillment work, so a plain
+     * staff member doesn't get this, unlike the payments list they still
+     * need to confirm cash received.
      *
      * Aggregate queries go through DB::connection('tenant') directly
      * rather than the Eloquent models -- selectRaw + groupBy results would
@@ -26,7 +29,7 @@ class AnalyticsController extends Controller
         /** @var Tenant $tenant */
         $tenant = $request->route('tenant');
 
-        if (! $tenant->isManagedBy($request->user())) {
+        if (! $tenant->isAdministeredBy($request->user())) {
             abort(403, 'This action is unauthorized.');
         }
 

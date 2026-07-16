@@ -93,7 +93,14 @@ function App() {
             </Route>
 
             <Route element={<CustomerLayout />}>
-              <Route path="/" element={<Home />} />
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <Home />
+                  </RequireAuth>
+                }
+              />
               <Route path="/discover" element={<Discover />} />
 
               <Route

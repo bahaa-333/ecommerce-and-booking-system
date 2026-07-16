@@ -3,6 +3,7 @@ import { useOutletContext, useParams } from "react-router-dom";
 import { Minus, Package, Plus } from "lucide-react";
 import { apiGet } from "../../lib/api";
 import { useCart } from "../../lib/CartContext";
+import DetailSkeleton from "../../components/customer/DetailSkeleton";
 
 export default function ProductDetail() {
   const { tenant } = useOutletContext();
@@ -43,7 +44,7 @@ export default function ProductDetail() {
   }, [product, selectedValues]);
 
   if (loading) {
-    return <div className="py-24 text-center text-sm text-gray-400">Loading…</div>;
+    return <DetailSkeleton />;
   }
 
   if (!product) {

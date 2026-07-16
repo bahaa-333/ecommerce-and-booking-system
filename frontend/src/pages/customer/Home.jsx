@@ -108,6 +108,17 @@ export default function Home() {
         </div>
       </section>
 
+      {user && activityLoading && (
+        <section className="mt-12">
+          <h2 className="text-lg font-semibold text-gray-900">Upcoming bookings &amp; orders</h2>
+          <div className="mt-4 flex gap-4 overflow-x-auto pb-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-64 shrink-0 rounded-2xl" />
+            ))}
+          </div>
+        </section>
+      )}
+
       {user && !activityLoading && activity.length > 0 && (
         <section className="mt-12">
           <h2 className="text-lg font-semibold text-gray-900">Upcoming bookings &amp; orders</h2>

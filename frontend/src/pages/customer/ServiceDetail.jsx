@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
 import { Clock, Sparkles, Users } from "lucide-react";
 import { apiGet } from "../../lib/api";
+import DetailSkeleton from "../../components/customer/DetailSkeleton";
 
 export default function ServiceDetail() {
   const { tenant } = useOutletContext();
@@ -27,7 +28,7 @@ export default function ServiceDetail() {
   }, [tenant.slug, serviceId]);
 
   if (loading) {
-    return <div className="py-24 text-center text-sm text-gray-400">Loading…</div>;
+    return <DetailSkeleton />;
   }
 
   if (!service) {

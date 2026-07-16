@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { apiGet, apiPatch, extractErrorMessage } from "../../lib/api";
 import StatusBadge from "../../components/StatusBadge";
+import SimpleDetailSkeleton from "../../components/customer/SimpleDetailSkeleton";
 
 const CANCELLABLE = ["pending", "confirmed"];
 
@@ -39,7 +40,7 @@ export default function OrderDetail() {
     }
   }
 
-  if (loading) return <div className="py-24 text-center text-sm text-gray-400">Loading…</div>;
+  if (loading) return <SimpleDetailSkeleton />;
   if (!order) return <div className="py-24 text-center text-sm text-gray-400">Order not found.</div>;
 
   return (

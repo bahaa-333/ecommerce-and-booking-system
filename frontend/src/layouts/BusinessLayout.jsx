@@ -92,22 +92,22 @@ export default function BusinessLayout() {
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white md:flex">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-gray-100 bg-white md:flex">
         {sidebarContent}
       </aside>
 
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col bg-white shadow-xl">
+          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col overflow-y-auto bg-white shadow-xl">
             {sidebarContent}
           </aside>
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-4 sm:px-8">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-4 py-4 sm:px-8">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -129,7 +129,7 @@ export default function BusinessLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8">
           <Outlet context={{ tenant }} />
         </main>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import { apiGet } from "../lib/api";
+import { Skeleton, CardSkeleton } from "../components/Skeleton";
 
 export default function StoreLayout() {
   const { tenantSlug } = useParams();
@@ -27,7 +28,17 @@ export default function StoreLayout() {
   }, [tenantSlug]);
 
   if (loading) {
-    return <div className="py-24 text-center text-sm text-gray-400">Loading…</div>;
+    return (
+      <div>
+        <Skeleton className="h-48 w-full rounded-3xl sm:h-64" />
+        <Skeleton className="mt-6 h-8 w-64" />
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (notFound || !tenant) {

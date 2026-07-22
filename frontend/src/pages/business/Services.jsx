@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Image, Pencil, Plus, Trash2, X } from "lucide-react";
 import { usePaginatedFetch } from "../../lib/usePaginatedFetch";
 import { apiDelete, apiPatch, apiPost, extractErrorMessage } from "../../lib/api";
 import { slugify } from "../../lib/slugify";
 import Pagination from "../../components/Pagination";
 import StatusBadge from "../../components/StatusBadge";
+import CatalogImageManager from "../../components/CatalogImageManager";
 import { TableSkeleton } from "../../components/Skeleton";
 
 const STATUSES = ["active", "inactive", "archived"];
@@ -32,6 +33,7 @@ export default function Services() {
   const [editStatus, setEditStatus] = useState("active");
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [imagesOpenId, setImagesOpenId] = useState(null);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -207,9 +209,10 @@ export default function Services() {
               </tr>
             )}
             {!loading &&
-              services.map((service) =>
-                editingId === service.id ? (
-                  <tr key={service.id} className="border-b border-gray-50 last:border-0">
+              services.map((service) => (
+                <Fragment key={service.id}>
+                {editingId === service.id ? (
+                  <tr className="border-b border-gray-50 last:border-0">
                     <td className="px-5 py-3">
                       <input
                         value={editName}
@@ -275,7 +278,7 @@ export default function Services() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={service.id} className="border-b border-gray-50 last:border-0">
+                  <tr className="border-b border-gray-50 last:border-0">
                     <td className="px-5 py-4 font-medium text-gray-900">{service.name}</td>
                     <td className="px-5 py-4 text-gray-500">${Number(service.price).toFixed(2)}</td>
                     <td className="px-5 py-4 text-gray-500">
@@ -287,6 +290,14 @@ export default function Services() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setImagesOpenId((id) => (id === service.id ? null : service.id))}
+                          className="rounded-full bg-gray-100 p-1.5 text-gray-500 hover:bg-gray-200"
+                          aria-label="Manage images"
+                        >
+                          <Image className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => startEdit(service)}
@@ -307,8 +318,22 @@ export default function Services() {
                       </div>
                     </td>
                   </tr>
-                ),
-              )}
+                )}
+                {imagesOpenId === service.id && (
+                  <tr className="border-b border-gray-50 bg-gray-50/60 last:border-0">
+                    <td colSpan={6} className="px-5 py-4">
+                      <CatalogImageManager
+                        basePath={`tenants/${tenant.slug}/services/${service.id}`}
+                        images={service.images ?? []}
+                        onChange={(images) =>
+                          setServices((prev) => prev.map((s) => (s.id === service.id ? { ...s, images } : s)))
+                        }
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+              ))}
           </tbody>
         </table>
         </div>

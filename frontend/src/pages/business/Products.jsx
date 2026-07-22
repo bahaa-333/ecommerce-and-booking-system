@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Image, Pencil, Plus, Trash2, X } from "lucide-react";
 import { usePaginatedFetch } from "../../lib/usePaginatedFetch";
 import { apiDelete, apiPatch, apiPost, extractErrorMessage } from "../../lib/api";
 import { slugify } from "../../lib/slugify";
 import Pagination from "../../components/Pagination";
 import StatusBadge from "../../components/StatusBadge";
+import CatalogImageManager from "../../components/CatalogImageManager";
 import { TableSkeleton } from "../../components/Skeleton";
 
 const STATUSES = ["active", "inactive", "archived"];
@@ -29,6 +30,7 @@ export default function Products() {
   const [editStatus, setEditStatus] = useState("active");
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [imagesOpenId, setImagesOpenId] = useState(null);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -177,9 +179,10 @@ export default function Products() {
               </tr>
             )}
             {!loading &&
-              products.map((product) =>
-                editingId === product.id ? (
-                  <tr key={product.id} className="border-b border-gray-50 last:border-0">
+              products.map((product) => (
+                <Fragment key={product.id}>
+                {editingId === product.id ? (
+                  <tr className="border-b border-gray-50 last:border-0">
                     <td className="px-5 py-3">
                       <input
                         value={editName}
@@ -242,7 +245,7 @@ export default function Products() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={product.id} className="border-b border-gray-50 last:border-0">
+                  <tr className="border-b border-gray-50 last:border-0">
                     <td className="px-5 py-4 font-medium text-gray-900">{product.name}</td>
                     <td className="px-5 py-4 text-gray-500">${Number(product.price).toFixed(2)}</td>
                     <td className="px-5 py-4 text-gray-500">{product.stock_quantity ?? "—"}</td>
@@ -251,6 +254,14 @@ export default function Products() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setImagesOpenId((id) => (id === product.id ? null : product.id))}
+                          className="rounded-full bg-gray-100 p-1.5 text-gray-500 hover:bg-gray-200"
+                          aria-label="Manage images"
+                        >
+                          <Image className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => startEdit(product)}
@@ -271,8 +282,22 @@ export default function Products() {
                       </div>
                     </td>
                   </tr>
-                ),
-              )}
+                )}
+                {imagesOpenId === product.id && (
+                  <tr className="border-b border-gray-50 bg-gray-50/60 last:border-0">
+                    <td colSpan={5} className="px-5 py-4">
+                      <CatalogImageManager
+                        basePath={`tenants/${tenant.slug}/products/${product.id}`}
+                        images={product.images ?? []}
+                        onChange={(images) =>
+                          setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, images } : p)))
+                        }
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+              ))}
           </tbody>
         </table>
         </div>
